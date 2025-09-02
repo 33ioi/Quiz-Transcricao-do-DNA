@@ -110,24 +110,60 @@
     object-fit: cover;
   }
   
-  .rank-tabs {
+  .rank-item {
     display: flex;
-    justify-content: center;
-    margin-bottom: 15px;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0;
+    padding: 8px;
+    border-radius: 8px;
+    background: #1e293b;
   }
-  .rank-tab {
-    padding: 8px 15px;
-    background: #334155;
-    cursor: pointer;
-    border-radius: 5px;
-    margin: 0 5px;
-  }
-  .rank-tab.active {
-    background: #38bdf8;
-    color: #0f172a;
+  .rank-position {
     font-weight: bold;
+    width: 30px;
+    text-align: center;
+  }
+  .rank-avatar img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #38bdf8;
+  }
+  .rank-info {
+    flex: 1;
+  }
+  .rank-score {
+    font-weight: bold;
+    color: #facc15;
+  }
+  
+  .loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: #38bdf8;
+    animation: spin 1s ease-in-out infinite;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  .error-message {
+    color: #ef4444;
+    text-align: center;
+    padding: 10px;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 8px;
+    margin: 10px 0;
   }
 </style>
+<!-- Adicione o SDK do Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div class="container">
@@ -147,14 +183,13 @@
 
   <!-- Tela Ranking -->
   <div id="rankScreen" class="hidden">
-    <h2>🏆 Ranking</h2>
-    
-    <div class="rank-tabs">
-      <div class="rank-tab active" onclick="changeRankTab('global')">Ranking Global</div>
-      <div class="rank-tab" onclick="changeRankTab('personal')">Meu Histórico</div>
+    <h2>🏆 Ranking Global - Top 10</h2>
+    <div class="rank-list" id="rankList">
+      <div style="text-align: center; padding: 20px;">
+        <div class="loading"></div>
+        <p>Carregando ranking...</p>
+      </div>
     </div>
-    
-    <div class="rank-list" id="rankList">Carregando ranking...</div>
     <button onclick="goToStart()">Voltar</button>
   </div>
 
@@ -193,6 +228,7 @@
     <h2>Fim do Quiz!</h2>
     <p id="finalScore"></p>
     <p id="finalTime"></p>
+    <div id="firebaseError" class="error-message hidden"></div>
     <button onclick="playAgain()">Jogar Novamente</button>
     <button onclick="goToStart()">Voltar</button>
     <button onclick="showRank()">Ver Ranking</button>
@@ -201,6 +237,21 @@
 </div>
 
 <script>
+// Configuração do Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyDFf0vlW5P5zNXRAsR4OfeBliSfXQvO_k4",
+  authDomain: "quiz-transcricao-do-dna.firebaseapp.com",
+  projectId: "quiz-transcricao-do-dna",
+  storageBucket: "quiz-transcricao-do-dna.firebasestorage.app",
+  messagingSenderId: "442557590223",
+  appId: "1:442557590223:web:8a4f87a8f03ab29d6125ba",
+  measurementId: "G-KX8CS9KPNF"
+};
+
+// Inicializar Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
 const allQuestions = [
   {q:"O que representa o dogma central da biologia molecular?", options:["RNA → DNA → Proteína","DNA → RNA → Proteína","DNA → Proteína → RNA","Proteína → RNA → DNA"], answer:"DNA → RNA → Proteína"},
   {q:"Quais são as três etapas principais do dogma central?", options:["Transcrição, Tradução, Mutação","Replicação, Transcrição, Tradução","Replicação, Tradução, Expressão","Mutação, Transcrição, Replicação"], answer:"Replicação, Transcrição, Tradução"},
@@ -224,129 +275,130 @@ let currentQuestion = 0;
 let timer;
 let timeLeft = 30;
 let startTime;
-let currentRankTab = 'global'; // Controla qual aba do ranking está ativa
+let playerId = localStorage.getItem('playerId') || generateId();
 
-// Chave única para identificar este "sistema global" no localStorage
-const GLOBAL_RANK_KEY = "dnaQuizGlobalRank";
-const PERSONAL_HISTORY_KEY = "dnaQuizPersonalHistory";
+const defaultAvatar = "https://i.ibb.co/HfCrGWcK/0f6894e539589a50809e45833c8bb6c4.jpg";
 
-// Inicializa os dados no localStorage se não existirem
-function initializeStorage() {
-  if (!localStorage.getItem(GLOBAL_RANK_KEY)) {
-    localStorage.setItem(GLOBAL_RANK_KEY, JSON.stringify([]));
+// Gerar ID único para o jogador
+function generateId() {
+  const id = 'player_' + Math.random().toString(36).substr(2, 9);
+  localStorage.setItem('playerId', id);
+  return id;
+}
+
+// Salvar pontuação no Firebase
+async function saveScoreToFirebase(scoreData) {
+  try {
+    // Adicionar ID do jogador aos dados
+    scoreData.playerId = playerId;
+    
+    // Adicionar timestamp
+    scoreData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
+    
+    // Salvar no Firestore
+    await db.collection('scores').add(scoreData);
+    
+    console.log('Pontuação salva com sucesso!');
+    hideFirebaseError();
+    return true;
+  } catch (error) {
+    console.error('Erro ao salvar pontuação:', error);
+    showFirebaseError('Erro ao salvar pontuação. Verifique sua conexão.');
+    return false;
   }
-  if (!localStorage.getItem(PERSONAL_HISTORY_KEY)) {
-    localStorage.setItem(PERSONAL_HISTORY_KEY, JSON.stringify([]));
+}
+
+// Buscar ranking do Firebase
+async function getRankingFromFirebase() {
+  try {
+    const snapshot = await db.collection('scores')
+      .orderBy('score', 'desc')
+      .orderBy('time', 'asc')
+      .orderBy('timestamp', 'desc')
+      .limit(10)
+      .get();
+    
+    const ranking = [];
+    snapshot.forEach(doc => {
+      ranking.push({ id: doc.id, ...doc.data() });
+    });
+    
+    return ranking;
+  } catch (error) {
+    console.error('Erro ao buscar ranking:', error);
+    showFirebaseError('Erro ao carregar ranking. Verifique sua conexão.');
+    return [];
   }
 }
 
-// Obtém o ranking global
-function getGlobalRank() {
-  return JSON.parse(localStorage.getItem(GLOBAL_RANK_KEY)) || [];
+// Mostrar erro do Firebase
+function showFirebaseError(message) {
+  const errorElement = document.getElementById('firebaseError');
+  errorElement.textContent = message;
+  errorElement.classList.remove('hidden');
 }
 
-// Obtém o histórico pessoal
-function getPersonalHistory() {
-  return JSON.parse(localStorage.getItem(PERSONAL_HISTORY_KEY)) || [];
+// Esconder erro do Firebase
+function hideFirebaseError() {
+  const errorElement = document.getElementById('firebaseError');
+  errorElement.classList.add('hidden');
 }
 
-// Salva uma nova pontuação no ranking global
-function saveToGlobalRank(scoreData) {
-  const globalRank = getGlobalRank();
+// Atualizar a exibição do ranking
+async function updateRankDisplay() {
+  // Mostrar loading
+  document.getElementById("rankList").innerHTML = `
+    <div style="text-align: center; padding: 20px;">
+      <div class="loading"></div>
+      <p>Carregando ranking...</p>
+    </div>
+  `;
   
-  // Adiciona a nova pontuação
-  globalRank.push(scoreData);
-  
-  // Ordena por pontuação (decrescente) e tempo (crescente)
-  globalRank.sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score;
-    return a.time - b.time;
-  });
-  
-  // Mantém apenas as top 100 pontuações
-  const trimmedRank = globalRank.slice(0, 100);
-  
-  // Salva no localStorage
-  localStorage.setItem(GLOBAL_RANK_KEY, JSON.stringify(trimmedRank));
-  return trimmedRank;
-}
-
-// Salva no histórico pessoal
-function saveToPersonalHistory(scoreData) {
-  const personalHistory = getPersonalHistory();
-  
-  // Adiciona a nova pontuação
-  personalHistory.push(scoreData);
-  
-  // Ordena por data (mais recente primeiro)
-  personalHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
-  
-  // Mantém apenas as 50 últimas pontuações
-  const trimmedHistory = personalHistory.slice(0, 50);
-  
-  // Salva no localStorage
-  localStorage.setItem(PERSONAL_HISTORY_KEY, JSON.stringify(trimmedHistory));
-  return trimmedHistory;
-}
-
-// Atualiza a exibição do ranking
-function updateRankDisplay() {
-  let data = [];
-  let title = "";
-  
-  if (currentRankTab === 'global') {
-    data = getGlobalRank();
-    title = "Ranking Global - Top 100";
-  } else {
-    data = getPersonalHistory();
-    title = "Meu Histórico - Últimas 50 Partidas";
+  try {
+    const ranking = await getRankingFromFirebase();
+    const medals = ["🥇", "🥈", "🥉"];
+    
+    if (ranking.length === 0) {
+      document.getElementById("rankList").innerHTML = "<p style='text-align:center; color:#94a3b8;'>Nenhuma pontuação ainda</p>";
+      return;
+    }
+    
+    const rankingHTML = ranking.map((player, index) => {
+      const medal = index < 3 ? medals[index] : "";
+      
+      return `
+        <div class="rank-item">
+          <div class="rank-position">${medal} ${index + 1}</div>
+          <div class="rank-avatar">
+            <img src="${player.avatar || defaultAvatar}" alt="${player.name}">
+          </div>
+          <div class="rank-info">
+            <div>${player.name}</div>
+            <div class="rank-score">${player.score} pontos • ${player.time}s</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+    
+    document.getElementById("rankList").innerHTML = rankingHTML;
+  } catch (error) {
+    document.getElementById("rankList").innerHTML = `
+      <p style='text-align:center; color:#ef4444;'>Erro ao carregar ranking</p>
+    `;
   }
-  
-  const medals = ["🥇", "🥈", "🥉"];
-  const list = data.length > 0 
-    ? data.map((item, i) => {
-        const medal = currentRankTab === 'global' && i < 3 ? medals[i] : `#${i+1}`;
-        const date = currentRankTab === 'personal' ? new Date(item.date).toLocaleDateString('pt-BR') : '';
-        
-        return `<div style="display:flex; align-items:center; gap:8px; margin:5px 0; padding:5px; border-bottom:1px solid #334155;">
-                  <strong>${medal}</strong>
-                  <img src="${item.avatar}" width="35" height="35" style="border-radius:50%; border:2px solid #38bdf8;">
-                  <span style="flex:1;">${item.name}</span>
-                  <span style="font-weight:bold;">${item.score} pts</span>
-                  <span style="color:#94a3b8; font-size:14px;">${item.time}s</span>
-                  ${currentRankTab === 'personal' ? `<span style="color:#64748b; font-size:12px;">${date}</span>` : ''}
-                </div>`;
-      }).join("")
-    : `<p style="text-align:center; color:#94a3b8;">Nenhum dado disponível</p>`;
-  
-  document.getElementById("rankList").innerHTML = `<h3 style="margin-top:0;">${title}</h3>` + list;
-}
-
-// Alterna entre as abas do ranking
-function changeRankTab(tab) {
-  currentRankTab = tab;
-  
-  // Atualiza a aparência das abas
-  document.querySelectorAll('.rank-tab').forEach(element => {
-    element.classList.remove('active');
-  });
-  document.querySelector(`.rank-tab:nth-child(${tab === 'global' ? 1 : 2})`).classList.add('active');
-  
-  // Atualiza a exibição
-  updateRankDisplay();
 }
 
 // Funções de navegação
 function goToStart(){
   ["aboutScreen","rankScreen","resultScreen","gameScreen"].forEach(id=>document.getElementById(id).classList.add("hidden"));
   document.getElementById("startScreen").classList.remove("hidden");
+  hideFirebaseError();
 }
 
 function showRank(){ 
-  initializeStorage();
-  changeRankTab('global');
   ["startScreen","resultScreen","gameScreen"].forEach(id=>document.getElementById(id).classList.add("hidden")); 
   document.getElementById("rankScreen").classList.remove("hidden"); 
+  updateRankDisplay();
 }
 
 function showAbout(){ 
@@ -374,7 +426,7 @@ function startGame(){
   startTime = Date.now();
   
   if(!player.avatar) {
-    player.avatar = "https://i.ibb.co/HfCrGWcK/0f6894e539589a50809e45833c8bb6c4.jpg";
+    player.avatar = defaultAvatar;
   }
   
   document.getElementById("playerAvatar").src = player.avatar;
@@ -437,7 +489,7 @@ function checkAnswer(answer){
   loadQuestion();
 }
 
-function endGame(ended=true){
+async function endGame(ended=true){
   clearInterval(timer);
   player.time = Math.floor((Date.now() - startTime)/1000);
   
@@ -447,14 +499,11 @@ function endGame(ended=true){
       name: player.name,
       avatar: player.avatar,
       score: player.score,
-      time: player.time,
-      date: new Date().toISOString()
+      time: player.time
     };
     
-    // Salva nos rankings
-    initializeStorage();
-    saveToGlobalRank(scoreData);
-    saveToPersonalHistory(scoreData);
+    // Salva no Firebase
+    await saveScoreToFirebase(scoreData);
   }
   
   document.getElementById("gameScreen").classList.add("hidden");
@@ -481,8 +530,8 @@ function stopGame(){
   endGame(false); 
 }
 
-// Inicializa o armazenamento quando a página carrega
-initializeStorage();
+// Inicializar quando a página carregar
+hideFirebaseError();
 </script>
 </body>
 </html>
