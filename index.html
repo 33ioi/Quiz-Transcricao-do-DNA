@@ -109,6 +109,24 @@
     border: 3px solid #38bdf8;
     object-fit: cover;
   }
+  
+  .rank-tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+  }
+  .rank-tab {
+    padding: 8px 15px;
+    background: #334155;
+    cursor: pointer;
+    border-radius: 5px;
+    margin: 0 5px;
+  }
+  .rank-tab.active {
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: bold;
+  }
 </style>
 </head>
 <body>
@@ -130,7 +148,13 @@
   <!-- Tela Ranking -->
   <div id="rankScreen" class="hidden">
     <h2>🏆 Ranking</h2>
-    <div class="rank-list" id="rankList">Nenhum jogo registrado ainda.</div>
+    
+    <div class="rank-tabs">
+      <div class="rank-tab active" onclick="changeRankTab('global')">Ranking Global</div>
+      <div class="rank-tab" onclick="changeRankTab('personal')">Meu Histórico</div>
+    </div>
+    
+    <div class="rank-list" id="rankList">Carregando ranking...</div>
     <button onclick="goToStart()">Voltar</button>
   </div>
 
@@ -200,39 +224,135 @@ let currentQuestion = 0;
 let timer;
 let timeLeft = 30;
 let startTime;
-let history = JSON.parse(localStorage.getItem("history")) || [];
-const defaultAvatar = "https://i.ibb.co/HfCrGWcK/0f6894e539589a50809e45833c8bb6c4.jpg";
+let currentRankTab = 'global'; // Controla qual aba do ranking está ativa
 
-// Atualiza ranking
-function updateRank(){
-  history = JSON.parse(localStorage.getItem("history")) || [];
-  let sorted = [...history].sort((a,b)=>{
-    if(b.score !== a.score) return b.score - a.score;
-    return a.time - b.time;
-  });
-  const medals = ["🥇","🥈","🥉"];
-  const list = sorted.map((h,i)=>{
-    const medal = medals[i] || "";
-    return `<div style="display:flex; align-items:center; gap:8px; margin:5px 0;">
-              <strong>${medal} #${i+1}</strong>
-              <img src="${h.avatar}" width="35" height="35" style="border-radius:50%; border:2px solid #38bdf8;">
-              <span style="flex:1;">${h.name}</span>
-              <span style="font-weight:bold;">${h.score} pts (${h.time}s)</span>
-            </div>`;
-  }).join("");
-  document.getElementById("rankList").innerHTML = list || "Nenhum jogo registrado ainda.";
+// Chave única para identificar este "sistema global" no localStorage
+const GLOBAL_RANK_KEY = "dnaQuizGlobalRank";
+const PERSONAL_HISTORY_KEY = "dnaQuizPersonalHistory";
+
+// Inicializa os dados no localStorage se não existirem
+function initializeStorage() {
+  if (!localStorage.getItem(GLOBAL_RANK_KEY)) {
+    localStorage.setItem(GLOBAL_RANK_KEY, JSON.stringify([]));
+  }
+  if (!localStorage.getItem(PERSONAL_HISTORY_KEY)) {
+    localStorage.setItem(PERSONAL_HISTORY_KEY, JSON.stringify([]));
+  }
 }
 
-// Inicializa ranking
-updateRank();
+// Obtém o ranking global
+function getGlobalRank() {
+  return JSON.parse(localStorage.getItem(GLOBAL_RANK_KEY)) || [];
+}
+
+// Obtém o histórico pessoal
+function getPersonalHistory() {
+  return JSON.parse(localStorage.getItem(PERSONAL_HISTORY_KEY)) || [];
+}
+
+// Salva uma nova pontuação no ranking global
+function saveToGlobalRank(scoreData) {
+  const globalRank = getGlobalRank();
+  
+  // Adiciona a nova pontuação
+  globalRank.push(scoreData);
+  
+  // Ordena por pontuação (decrescente) e tempo (crescente)
+  globalRank.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.time - b.time;
+  });
+  
+  // Mantém apenas as top 100 pontuações
+  const trimmedRank = globalRank.slice(0, 100);
+  
+  // Salva no localStorage
+  localStorage.setItem(GLOBAL_RANK_KEY, JSON.stringify(trimmedRank));
+  return trimmedRank;
+}
+
+// Salva no histórico pessoal
+function saveToPersonalHistory(scoreData) {
+  const personalHistory = getPersonalHistory();
+  
+  // Adiciona a nova pontuação
+  personalHistory.push(scoreData);
+  
+  // Ordena por data (mais recente primeiro)
+  personalHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  // Mantém apenas as 50 últimas pontuações
+  const trimmedHistory = personalHistory.slice(0, 50);
+  
+  // Salva no localStorage
+  localStorage.setItem(PERSONAL_HISTORY_KEY, JSON.stringify(trimmedHistory));
+  return trimmedHistory;
+}
+
+// Atualiza a exibição do ranking
+function updateRankDisplay() {
+  let data = [];
+  let title = "";
+  
+  if (currentRankTab === 'global') {
+    data = getGlobalRank();
+    title = "Ranking Global - Top 100";
+  } else {
+    data = getPersonalHistory();
+    title = "Meu Histórico - Últimas 50 Partidas";
+  }
+  
+  const medals = ["🥇", "🥈", "🥉"];
+  const list = data.length > 0 
+    ? data.map((item, i) => {
+        const medal = currentRankTab === 'global' && i < 3 ? medals[i] : `#${i+1}`;
+        const date = currentRankTab === 'personal' ? new Date(item.date).toLocaleDateString('pt-BR') : '';
+        
+        return `<div style="display:flex; align-items:center; gap:8px; margin:5px 0; padding:5px; border-bottom:1px solid #334155;">
+                  <strong>${medal}</strong>
+                  <img src="${item.avatar}" width="35" height="35" style="border-radius:50%; border:2px solid #38bdf8;">
+                  <span style="flex:1;">${item.name}</span>
+                  <span style="font-weight:bold;">${item.score} pts</span>
+                  <span style="color:#94a3b8; font-size:14px;">${item.time}s</span>
+                  ${currentRankTab === 'personal' ? `<span style="color:#64748b; font-size:12px;">${date}</span>` : ''}
+                </div>`;
+      }).join("")
+    : `<p style="text-align:center; color:#94a3b8;">Nenhum dado disponível</p>`;
+  
+  document.getElementById("rankList").innerHTML = `<h3 style="margin-top:0;">${title}</h3>` + list;
+}
+
+// Alterna entre as abas do ranking
+function changeRankTab(tab) {
+  currentRankTab = tab;
+  
+  // Atualiza a aparência das abas
+  document.querySelectorAll('.rank-tab').forEach(element => {
+    element.classList.remove('active');
+  });
+  document.querySelector(`.rank-tab:nth-child(${tab === 'global' ? 1 : 2})`).classList.add('active');
+  
+  // Atualiza a exibição
+  updateRankDisplay();
+}
 
 // Funções de navegação
 function goToStart(){
   ["aboutScreen","rankScreen","resultScreen","gameScreen"].forEach(id=>document.getElementById(id).classList.add("hidden"));
   document.getElementById("startScreen").classList.remove("hidden");
 }
-function showRank(){ updateRank(); ["startScreen","resultScreen","gameScreen"].forEach(id=>document.getElementById(id).classList.add("hidden")); document.getElementById("rankScreen").classList.remove("hidden"); }
-function showAbout(){ ["startScreen","rankScreen","resultScreen","gameScreen"].forEach(id=>document.getElementById(id).classList.add("hidden")); document.getElementById("aboutScreen").classList.remove("hidden"); }
+
+function showRank(){ 
+  initializeStorage();
+  changeRankTab('global');
+  ["startScreen","resultScreen","gameScreen"].forEach(id=>document.getElementById(id).classList.add("hidden")); 
+  document.getElementById("rankScreen").classList.remove("hidden"); 
+}
+
+function showAbout(){ 
+  ["startScreen","rankScreen","resultScreen","gameScreen"].forEach(id=>document.getElementById(id).classList.add("hidden")); 
+  document.getElementById("aboutScreen").classList.remove("hidden"); 
+}
 
 function uploadAvatar(event){
   const file = event.target.files[0];
@@ -252,46 +372,67 @@ function startGame(){
   player.time = 0;
   currentQuestion = 0;
   startTime = Date.now();
-  if(!player.avatar) player.avatar = defaultAvatar;
+  
+  if(!player.avatar) {
+    player.avatar = "https://i.ibb.co/HfCrGWcK/0f6894e539589a50809e45833c8bb6c4.jpg";
+  }
+  
   document.getElementById("playerAvatar").src = player.avatar;
   document.getElementById("playerInfo").innerText = player.name;
   document.getElementById("score").innerText = "Pontos: 0";
+  
   questions = [...allQuestions].sort(()=>0.5-Math.random());
   document.getElementById("startScreen").classList.add("hidden");
   document.getElementById("gameScreen").classList.remove("hidden");
+  
   loadQuestion();
 }
 
 function loadQuestion(){
-  if(currentQuestion >= questions.length){ endGame(true); return; }
+  if(currentQuestion >= questions.length){ 
+    endGame(true); 
+    return; 
+  }
+  
   const q = questions[currentQuestion];
   document.getElementById("questionText").innerText = q.q;
+  
   const opts = document.getElementById("options");
   opts.innerHTML = "";
-  q.options.forEach(opt=>{
+  
+  q.options.forEach(opt => {
     const btn = document.createElement("button");
     btn.innerText = opt;
-    btn.onclick = ()=>checkAnswer(opt);
+    btn.onclick = () => checkAnswer(opt);
     opts.appendChild(btn);
   });
+  
   timeLeft = 30;
   document.getElementById("timeLeft").innerText = timeLeft;
+  
   clearInterval(timer);
-  timer = setInterval(()=>{
+  timer = setInterval(() => {
     timeLeft--;
     document.getElementById("timeLeft").innerText = timeLeft;
-    if(timeLeft <= 0){ clearInterval(timer); currentQuestion++; loadQuestion(); }
-  },1000);
+    
+    if(timeLeft <= 0){ 
+      clearInterval(timer); 
+      currentQuestion++; 
+      loadQuestion(); 
+    }
+  }, 1000);
 }
 
 function checkAnswer(answer){
   clearInterval(timer);
   const q = questions[currentQuestion];
+  
   if(answer === q.answer){
     const points = Math.max(1, 10 - (30 - timeLeft));
     player.score += points;
     document.getElementById("score").innerText = "Pontos: " + player.score;
   }
+  
   currentQuestion++;
   loadQuestion();
 }
@@ -299,15 +440,27 @@ function checkAnswer(answer){
 function endGame(ended=true){
   clearInterval(timer);
   player.time = Math.floor((Date.now() - startTime)/1000);
+  
   if(ended){
-    history.push({name: player.name, avatar: player.avatar, score: player.score, time: player.time});
-    localStorage.setItem("history", JSON.stringify(history));
+    // Prepara os dados para salvar
+    const scoreData = {
+      name: player.name,
+      avatar: player.avatar,
+      score: player.score,
+      time: player.time,
+      date: new Date().toISOString()
+    };
+    
+    // Salva nos rankings
+    initializeStorage();
+    saveToGlobalRank(scoreData);
+    saveToPersonalHistory(scoreData);
   }
+  
   document.getElementById("gameScreen").classList.add("hidden");
   document.getElementById("resultScreen").classList.remove("hidden");
   document.getElementById("finalScore").innerText = "Pontuação final: " + player.score;
   document.getElementById("finalTime").innerText = "Tempo total: " + player.time + "s";
-  if(ended) updateRank();
 }
 
 function playAgain(){
@@ -315,14 +468,21 @@ function playAgain(){
   player.time = 0;
   currentQuestion = 0;
   startTime = Date.now();
+  
   document.getElementById("score").innerText = "Pontos: 0";
   document.getElementById("resultScreen").classList.add("hidden");
   document.getElementById("gameScreen").classList.remove("hidden");
+  
   questions = [...allQuestions].sort(()=>0.5-Math.random());
   loadQuestion();
 }
 
-function stopGame(){ endGame(false); }
+function stopGame(){ 
+  endGame(false); 
+}
+
+// Inicializa o armazenamento quando a página carrega
+initializeStorage();
 </script>
 </body>
 </html>
