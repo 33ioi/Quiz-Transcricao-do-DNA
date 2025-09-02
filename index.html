@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz - Transcrição do DNA</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(to right, #0f172a, #1e293b);
+    color: #f8fafc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  .container {
+    background: #1e293b;
+    border-radius: 15px;
+    padding: 25px;
+    width: 95%;
+    max-width: 700px;
+    box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+    text-align: center;
+  }
+
+  h1 { margin-bottom: 20px; color: #38bdf8; }
+  h2,h3 { color: #38bdf8; margin-bottom: 10px; }
+
+  input[type="text"] {
+    width: 80%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 2px solid #38bdf8;
+    font-size: 16px;
+    text-align: center;
+    margin-bottom: 15px;
+    outline: none;
+    transition: 0.3s;
+  }
+  input[type="text"]:focus { border-color: #0ea5e9; }
+
+  button {
+    padding: 10px 20px;
+    margin: 8px;
+    border: none;
+    border-radius: 8px;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  button:hover { background: #0ea5e9; }
+
+  .hidden { display: none; }
+
+  .scoreboard {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 10px;
+    font-size: 14px;
+  }
+  .scoreboard img {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    border: 2px solid #38bdf8;
+    object-fit: cover;
+  }
+
+  .question { font-size: 18px; margin-bottom: 15px; }
+  .options { display: flex; flex-direction: column; gap: 10px; }
+
+  .timer { font-size: 16px; margin-top: 10px; color: #facc15; font-weight: bold; }
+
+  .rank-list, .about-text {
+    text-align: left;
+    margin: 10px 0;
+    background: #0f172a;
+    border-radius: 10px;
+    padding: 10px;
+    max-height: 250px;
+    overflow-y: auto;
+  }
+
+  .file-input { margin: 15px 0; text-align: center; }
+  .avatar-label {
+    display: inline-block;
+    padding: 8px 15px;
+    border-radius: 8px;
+    background: #38bdf8;
+    color: #0f172a;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  .avatar-label:hover { background: #0ea5e9; }
+  .avatar-preview { margin-top: 10px; }
+  .avatar-preview img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 3px solid #38bdf8;
+    object-fit: cover;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Quiz: Transcrição do DNA</h1>
+
+  <!-- Tela Sobre -->
+  <div id="aboutScreen" class="hidden">
+    <h2>ℹ️ Sobre o Jogo</h2>
+    <div class="about-text">
+      <p>O <strong>Quiz de Transcrição do DNA</strong> foi criado para ensinar biologia molecular de forma divertida e interativa, utilizando uma mecânica inspirada no <strong>Wordwall – Abra a Caixa</strong>. Cada caixa representa uma pergunta que deve ser respondida corretamente para avançar e acumular pontos.</p>
+      <p>O jogo permite que você importe uma foto como avatar, personalize sua experiência, responda perguntas e acompanhe seu desempenho no ranking.</p>
+      <p>Desenvolvido por alunos do <strong>IFSUL – Campus Bagé</strong>, <strong>Jamerson Salinas Pereira</strong> e <strong>Delciomar</strong>.</p>
+    </div>
+    <button onclick="goToStart()">Voltar</button>
+  </div>
+
+  <!-- Tela Ranking -->
+  <div id="rankScreen" class="hidden">
+    <h2>🏆 Ranking</h2>
+    <div class="rank-list" id="rankList">Nenhum jogo registrado ainda.</div>
+    <button onclick="goToStart()">Voltar</button>
+  </div>
+
+  <!-- Tela inicial -->
+  <div id="startScreen">
+    <input type="text" id="playerName" placeholder="Digite seu nome">
+    <div class="file-input">
+      <p>📷 Escolha seu avatar:</p>
+      <label for="avatarUpload" class="avatar-label">Selecionar imagem</label>
+      <input type="file" id="avatarUpload" accept="image/*" onchange="uploadAvatar(event)" hidden>
+      <div class="avatar-preview">
+        <img id="avatarPreview" src="https://i.ibb.co/HfCrGWcK/0f6894e539589a50809e45833c8bb6c4.jpg" alt="Prévia do avatar">
+      </div>
+    </div>
+    <button onclick="startGame()">▶️ Iniciar Quiz</button>
+    <h3>📊 Opções</h3>
+    <button onclick="showRank()">Ver Ranking</button>
+    <button onclick="showAbout()">Sobre o Quiz</button>
+  </div>
+
+  <!-- Tela de Jogo -->
+  <div id="gameScreen" class="hidden">
+    <div class="scoreboard">
+      <span id="score">Pontos: 0</span>
+      <span id="playerInfo"></span>
+      <img id="playerAvatar" src="">
+    </div>
+    <div class="question" id="questionText"></div>
+    <div class="options" id="options"></div>
+    <div class="timer">Tempo: <span id="timeLeft">30</span>s</div>
+    <button onclick="stopGame()">Parar</button>
+  </div>
+
+  <!-- Tela de Resultado -->
+  <div id="resultScreen" class="hidden">
+    <h2>Fim do Quiz!</h2>
+    <p id="finalScore"></p>
+    <p id="finalTime"></p>
+    <button onclick="playAgain()">Jogar Novamente</button>
+    <button onclick="goToStart()">Voltar</button>
+    <button onclick="showRank()">Ver Ranking</button>
+  </div>
+
+</div>
+
+<script>
+const allQuestions = [
+  {q:"O que representa o dogma central da biologia molecular?", options:["RNA → DNA → Proteína","DNA → RNA → Proteína","DNA → Proteína → RNA","Proteína → RNA → DNA"], answer:"DNA → RNA → Proteína"},
+  {q:"Quais são as três etapas principais do dogma central?", options:["Transcrição, Tradução, Mutação","Replicação, Transcrição, Tradução","Replicação, Tradução, Expressão","Mutação, Transcrição, Replicação"], answer:"Replicação, Transcrição, Tradução"},
+  {q:"Qual é a exceção ao dogma central encontrada em alguns vírus?", options:["DNA direto para proteína","RNA sendo replicado sem DNA","Transcrição reversa","Proteínas gerando DNA"], answer:"Transcrição reversa"},
+  {q:"O que é a transcrição reversa e qual enzima a realiza?", options:["Síntese de DNA a partir de RNA pela transcriptase reversa","Síntese de RNA a partir de proteínas pela polimerase","Síntese de proteínas a partir do DNA pela ribossomo","Síntese de DNA a partir de DNA pela DNA polimerase"], answer:"Síntese de DNA a partir de RNA pela transcriptase reversa"},
+  {q:"Quem criou o termo “gene” e em que ano?", options:["Charles Darwin, 1865","Wilhelm Johannsen, 1909","Gregor Mendel, 1859","Watson e Crick, 1953"], answer:"Wilhelm Johannsen, 1909"},
+  {q:"Como definimos gene atualmente?", options:["Um pedaço de RNA que gera proteínas","Um fragmento de DNA que sempre gera proteínas","Uma sequência de DNA que pode ser transcrita em RNA","Um pedaço de proteína com função"], answer:"Uma sequência de DNA que pode ser transcrita em RNA"},
+  {q:"O que é uma unidade de transcrição?", options:["Parte do DNA que gera proteínas diretamente","Segmento do DNA transcrito em uma única molécula de RNA","Sequência de aminoácidos","Grupo de genes que não são expressos"], answer:"Segmento do DNA transcrito em uma única molécula de RNA"},
+  {q:"Qual a função da região promotora em um gene?", options:["Finalizar a transcrição","Orientar a tradução","Indicar onde a RNA polimerase deve iniciar a transcrição","Proteger o DNA de mutações"], answer:"Indicar onde a RNA polimerase deve iniciar a transcrição"},
+  {q:"O que define o término de uma unidade de transcrição gênica?", options:["A região promotora","O códon de início","O códon de parada ou sequência terminal","A polimerase de DNA"], answer:"O códon de parada ou sequência terminal"},
+  {q:"Qual a base complementar da Adenina no RNA?", options:["Timina","Uracila","Guanina","Citosina"], answer:"Uracila"},
+  {q:"O RNA mensageiro é produzido a partir de qual molécula?", options:["Proteína","DNA","Ribossomo","Lipídio"], answer:"DNA"},
+  {q:"Qual enzima é responsável pela transcrição do DNA?", options:["RNA Polimerase","DNA Ligase","Helicase","Topoisomerase"], answer:"RNA Polimerase"},
+  {q:"Qual base nitrogenada NÃO existe no RNA?", options:["Uracila","Timina","Guanina","Adenina"], answer:"Timina"},
+  {q:"A transcrição ocorre em qual parte da célula?", options:["Núcleo","Citoplasma","Mitocôndria","Ribossomo"], answer:"Núcleo"}
+];
+
+let questions = [];
+let player = {name:"", avatar:"", score:0, time:0};
+let currentQuestion = 0;
+let timer;
+let timeLeft = 30;
+let startTime;
+let history = JSON.parse(localStorage.getItem("history")) || [];
+const defaultAvatar = "https://i.ibb.co/HfCrGWcK/0f6894e539589a50809e45833c8bb6c4.jpg";
+
+// Atualiza ranking
+function updateRank(){
+  history = JSON.parse(localStorage.getItem("history")) || [];
+  let sorted = [...history].sort((a,b)=>{
+    if(b.score !== a.score) return b.score - a.score;
+    return a.time - b.time;
+  });
+  const medals = ["🥇","🥈","🥉"];
+  const list = sorted.map((h,i)=>{
+    const medal = medals[i] || "";
+    return `<div style="display:flex; align-items:center; gap:8px; margin:5px 0;">
+              <strong>${medal} #${i+1}</strong>
+              <img src="${h.avatar}" width="35" height="35" style="border-radius:50%; border:2px solid #38bdf8;">
+              <span style="flex:1;">${h.name}</span>
+              <span style="font-weight:bold;">${h.score} pts (${h.time}s)</span>
+            </div>`;
+  }).join("");
+  document.getElementById("rankList").innerHTML = list || "Nenhum jogo registrado ainda.";
+}
+
+// Inicializa ranking
+updateRank();
+
+// Funções de navegação
+function goToStart(){
+  ["aboutScreen","rankScreen","resultScreen","gameScreen"].forEach(id=>document.getElementById(id).classList.add("hidden"));
+  document.getElementById("startScreen").classList.remove("hidden");
+}
+function showRank(){ updateRank(); ["startScreen","resultScreen","gameScreen"].forEach(id=>document.getElementById(id).classList.add("hidden")); document.getElementById("rankScreen").classList.remove("hidden"); }
+function showAbout(){ ["startScreen","rankScreen","resultScreen","gameScreen"].forEach(id=>document.getElementById(id).classList.add("hidden")); document.getElementById("aboutScreen").classList.remove("hidden"); }
+
+function uploadAvatar(event){
+  const file = event.target.files[0];
+  if(file){
+    const reader = new FileReader();
+    reader.onload = function(e){
+      player.avatar = e.target.result;
+      document.getElementById("avatarPreview").src = e.target.result;
+    }
+    reader.readAsDataURL(file);
+  }
+}
+
+function startGame(){
+  player.name = document.getElementById("playerName").value || "Visitante";
+  player.score = 0;
+  player.time = 0;
+  currentQuestion = 0;
+  startTime = Date.now();
+  if(!player.avatar) player.avatar = defaultAvatar;
+  document.getElementById("playerAvatar").src = player.avatar;
+  document.getElementById("playerInfo").innerText = player.name;
+  document.getElementById("score").innerText = "Pontos: 0";
+  questions = [...allQuestions].sort(()=>0.5-Math.random());
+  document.getElementById("startScreen").classList.add("hidden");
+  document.getElementById("gameScreen").classList.remove("hidden");
+  loadQuestion();
+}
+
+function loadQuestion(){
+  if(currentQuestion >= questions.length){ endGame(true); return; }
+  const q = questions[currentQuestion];
+  document.getElementById("questionText").innerText = q.q;
+  const opts = document.getElementById("options");
+  opts.innerHTML = "";
+  q.options.forEach(opt=>{
+    const btn = document.createElement("button");
+    btn.innerText = opt;
+    btn.onclick = ()=>checkAnswer(opt);
+    opts.appendChild(btn);
+  });
+  timeLeft = 30;
+  document.getElementById("timeLeft").innerText = timeLeft;
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    timeLeft--;
+    document.getElementById("timeLeft").innerText = timeLeft;
+    if(timeLeft <= 0){ clearInterval(timer); currentQuestion++; loadQuestion(); }
+  },1000);
+}
+
+function checkAnswer(answer){
+  clearInterval(timer);
+  const q = questions[currentQuestion];
+  if(answer === q.answer){
+    const points = Math.max(1, 10 - (30 - timeLeft));
+    player.score += points;
+    document.getElementById("score").innerText = "Pontos: " + player.score;
+  }
+  currentQuestion++;
+  loadQuestion();
+}
+
+function endGame(ended=true){
+  clearInterval(timer);
+  player.time = Math.floor((Date.now() - startTime)/1000);
+  if(ended){
+    history.push({name: player.name, avatar: player.avatar, score: player.score, time: player.time});
+    localStorage.setItem("history", JSON.stringify(history));
+  }
+  document.getElementById("gameScreen").classList.add("hidden");
+  document.getElementById("resultScreen").classList.remove("hidden");
+  document.getElementById("finalScore").innerText = "Pontuação final: " + player.score;
+  document.getElementById("finalTime").innerText = "Tempo total: " + player.time + "s";
+  if(ended) updateRank();
+}
+
+function playAgain(){
+  player.score = 0;
+  player.time = 0;
+  currentQuestion = 0;
+  startTime = Date.now();
+  document.getElementById("score").innerText = "Pontos: 0";
+  document.getElementById("resultScreen").classList.add("hidden");
+  document.getElementById("gameScreen").classList.remove("hidden");
+  questions = [...allQuestions].sort(()=>0.5-Math.random());
+  loadQuestion();
+}
+
+function stopGame(){ endGame(false); }
+</script>
+</body>
+</html>
