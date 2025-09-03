@@ -79,7 +79,7 @@
 
   .timer { font-size: 16px; margin-top: 10px; color: #facc15; font-weight: bold; }
 
-  .rank-list, .about-text {
+  .about-text {
     text-align: left;
     margin: 10px 0;
     background: #0f172a;
@@ -109,61 +109,7 @@
     border: 3px solid #38bdf8;
     object-fit: cover;
   }
-  
-  .rank-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 8px 0;
-    padding: 8px;
-    border-radius: 8px;
-    background: #1e293b;
-  }
-  .rank-position {
-    font-weight: bold;
-    width: 30px;
-    text-align: center;
-  }
-  .rank-avatar img {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    border: 2px solid #38bdf8;
-  }
-  .rank-info {
-    flex: 1;
-  }
-  .rank-score {
-    font-weight: bold;
-    color: #facc15;
-  }
-  
-  .loading {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(255,255,255,0.3);
-    border-radius: 50%;
-    border-top-color: #38bdf8;
-    animation: spin 1s ease-in-out infinite;
-  }
-  
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-  
-  .error-message {
-    color: #ef4444;
-    text-align: center;
-    padding: 10px;
-    background: rgba(239, 68, 68, 0.1);
-    border-radius: 8px;
-    margin: 10px 0;
-  }
 </style>
-<!-- Adicione o SDK do Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <div class="container">
@@ -174,21 +120,9 @@
   <div id="aboutScreen" class="hidden">
     <h2>ℹ️ Sobre o Jogo</h2>
     <div class="about-text">
-      <p>O <strong>Quiz de Transcrição do DNA</strong> foi criado para ensinar biologia molecular de forma divertida e interativa, utilizando uma mecânica inspirada no <strong>Wordwall – Abra a Caixa</strong>. Cada caixa representa uma pergunta que deve ser respondida corretamente para avançar e acumular pontos.</p>
-      <p>O jogo permite que você importe uma foto como avatar, personalize sua experiência, responda perguntas e acompanhe seu desempenho no ranking.</p>
+      <p>O <strong>Quiz de Transcrição do DNA</strong> foi criado para ensinar biologia molecular de forma divertida e interativa, utilizando uma mecânica inspirada no <strong>Wordwall – Abra a Caixa</strong>.</p>
+      <p>O jogo permite que você importe uma foto como avatar, personalize sua experiência e acompanhe seu desempenho.</p>
       <p>Desenvolvido por alunos do <strong>IFSUL – Campus Bagé</strong>, <strong>Jamerson Salinas Pereira</strong> e <strong>Delciomar</strong>.</p>
-    </div>
-    <button onclick="goToStart()">Voltar</button>
-  </div>
-
-  <!-- Tela Ranking -->
-  <div id="rankScreen" class="hidden">
-    <h2>🏆 Ranking Global - Top 10</h2>
-    <div class="rank-list" id="rankList">
-      <div style="text-align: center; padding: 20px;">
-        <div class="loading"></div>
-        <p>Carregando ranking...</p>
-      </div>
     </div>
     <button onclick="goToStart()">Voltar</button>
   </div>
@@ -206,7 +140,6 @@
     </div>
     <button onclick="startGame()">▶️ Iniciar Quiz</button>
     <h3>📊 Opções</h3>
-    <button onclick="showRank()">Ver Ranking</button>
     <button onclick="showAbout()">Sobre o Quiz</button>
   </div>
 
@@ -228,45 +161,18 @@
     <h2>Fim do Quiz!</h2>
     <p id="finalScore"></p>
     <p id="finalTime"></p>
-    <div id="firebaseError" class="error-message hidden"></div>
     <button onclick="playAgain()">Jogar Novamente</button>
     <button onclick="goToStart()">Voltar</button>
-    <button onclick="showRank()">Ver Ranking</button>
   </div>
 
 </div>
 
 <script>
-// Configuração do Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyDFf0vlW5P5zNXRAsR4OfeBliSfXQvO_k4",
-  authDomain: "quiz-transcricao-do-dna.firebaseapp.com",
-  projectId: "quiz-transcricao-do-dna",
-  storageBucket: "quiz-transcricao-do-dna.firebasestorage.app",
-  messagingSenderId: "442557590223",
-  appId: "1:442557590223:web:8a4f87a8f03ab29d6125ba",
-  measurementId: "G-KX8CS9KPNF"
-};
-
-// Inicializar Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
 const allQuestions = [
   {q:"O que representa o dogma central da biologia molecular?", options:["RNA → DNA → Proteína","DNA → RNA → Proteína","DNA → Proteína → RNA","Proteína → RNA → DNA"], answer:"DNA → RNA → Proteína"},
   {q:"Quais são as três etapas principais do dogma central?", options:["Transcrição, Tradução, Mutação","Replicação, Transcrição, Tradução","Replicação, Tradução, Expressão","Mutação, Transcrição, Replicação"], answer:"Replicação, Transcrição, Tradução"},
   {q:"Qual é a exceção ao dogma central encontrada em alguns vírus?", options:["DNA direto para proteína","RNA sendo replicado sem DNA","Transcrição reversa","Proteínas gerando DNA"], answer:"Transcrição reversa"},
-  {q:"O que é a transcrição reversa e qual enzima a realiza?", options:["Síntese de DNA a partir de RNA pela transcriptase reversa","Síntese de RNA a partir de proteínas pela polimerase","Síntese de proteínas a partir do DNA pela ribossomo","Síntese de DNA a partir de DNA pela DNA polimerase"], answer:"Síntese de DNA a partir de RNA pela transcriptase reversa"},
-  {q:"Quem criou o termo “gene” e em que ano?", options:["Charles Darwin, 1865","Wilhelm Johannsen, 1909","Gregor Mendel, 1859","Watson e Crick, 1953"], answer:"Wilhelm Johannsen, 1909"},
-  {q:"Como definimos gene atualmente?", options:["Um pedaço de RNA que gera proteínas","Um fragmento de DNA que sempre gera proteínas","Uma sequência de DNA que pode ser transcrita em RNA","Um pedaço de proteína com função"], answer:"Uma sequência de DNA que pode ser transcrita em RNA"},
-  {q:"O que é uma unidade de transcrição?", options:["Parte do DNA que gera proteínas diretamente","Segmento do DNA transcrito em uma única molécula de RNA","Sequência de aminoácidos","Grupo de genes que não são expressos"], answer:"Segmento do DNA transcrito em uma única molécula de RNA"},
-  {q:"Qual a função da região promotora em um gene?", options:["Finalizar a transcrição","Orientar a tradução","Indicar onde a RNA polimerase deve iniciar a transcrição","Proteger o DNA de mutações"], answer:"Indicar onde a RNA polimerase deve iniciar a transcrição"},
-  {q:"O que define o término de uma unidade de transcrição gênica?", options:["A região promotora","O códon de início","O códon de parada ou sequência terminal","A polimerase de DNA"], answer:"O códon de parada ou sequência terminal"},
-  {q:"Qual a base complementar da Adenina no RNA?", options:["Timina","Uracila","Guanina","Citosina"], answer:"Uracila"},
-  {q:"O RNA mensageiro é produzido a partir de qual molécula?", options:["Proteína","DNA","Ribossomo","Lipídio"], answer:"DNA"},
-  {q:"Qual enzima é responsável pela transcrição do DNA?", options:["RNA Polimerase","DNA Ligase","Helicase","Topoisomerase"], answer:"RNA Polimerase"},
-  {q:"Qual base nitrogenada NÃO existe no RNA?", options:["Uracila","Timina","Guanina","Adenina"], answer:"Timina"},
-  {q:"A transcrição ocorre em qual parte da célula?", options:["Núcleo","Citoplasma","Mitocôndria","Ribossomo"], answer:"Núcleo"}
+  {q:"O que é a transcrição reversa e qual enzima a realiza?", options:["Síntese de DNA a partir de RNA pela transcriptase reversa","Síntese de RNA a partir de proteínas pela polimerase","Síntese de proteínas a partir do DNA pela ribossomo","Síntese de DNA a partir de DNA pela DNA polimerase"], answer:"Síntese de DNA a partir de RNA pela transcriptase reversa"}
 ];
 
 let questions = [];
@@ -275,134 +181,16 @@ let currentQuestion = 0;
 let timer;
 let timeLeft = 30;
 let startTime;
-let playerId = localStorage.getItem('playerId') || generateId();
 
 const defaultAvatar = "https://i.ibb.co/HfCrGWcK/0f6894e539589a50809e45833c8bb6c4.jpg";
 
-// Gerar ID único para o jogador
-function generateId() {
-  const id = 'player_' + Math.random().toString(36).substr(2, 9);
-  localStorage.setItem('playerId', id);
-  return id;
-}
-
-// Salvar pontuação no Firebase
-async function saveScoreToFirebase(scoreData) {
-  try {
-    // Adicionar ID do jogador aos dados
-    scoreData.playerId = playerId;
-    
-    // Adicionar timestamp
-    scoreData.timestamp = firebase.firestore.FieldValue.serverTimestamp();
-    
-    // Salvar no Firestore
-    await db.collection('scores').add(scoreData);
-    
-    console.log('Pontuação salva com sucesso!');
-    hideFirebaseError();
-    return true;
-  } catch (error) {
-    console.error('Erro ao salvar pontuação:', error);
-    showFirebaseError('Erro ao salvar pontuação. Verifique sua conexão.');
-    return false;
-  }
-}
-
-// Buscar ranking do Firebase
-async function getRankingFromFirebase() {
-  try {
-    const snapshot = await db.collection('scores')
-      .orderBy('score', 'desc')
-      .orderBy('time', 'asc')
-      .orderBy('timestamp', 'desc')
-      .limit(10)
-      .get();
-    
-    const ranking = [];
-    snapshot.forEach(doc => {
-      ranking.push({ id: doc.id, ...doc.data() });
-    });
-    
-    return ranking;
-  } catch (error) {
-    console.error('Erro ao buscar ranking:', error);
-    showFirebaseError('Erro ao carregar ranking. Verifique sua conexão.');
-    return [];
-  }
-}
-
-// Mostrar erro do Firebase
-function showFirebaseError(message) {
-  const errorElement = document.getElementById('firebaseError');
-  errorElement.textContent = message;
-  errorElement.classList.remove('hidden');
-}
-
-// Esconder erro do Firebase
-function hideFirebaseError() {
-  const errorElement = document.getElementById('firebaseError');
-  errorElement.classList.add('hidden');
-}
-
-// Atualizar a exibição do ranking
-async function updateRankDisplay() {
-  // Mostrar loading
-  document.getElementById("rankList").innerHTML = `
-    <div style="text-align: center; padding: 20px;">
-      <div class="loading"></div>
-      <p>Carregando ranking...</p>
-    </div>
-  `;
-  
-  try {
-    const ranking = await getRankingFromFirebase();
-    const medals = ["🥇", "🥈", "🥉"];
-    
-    if (ranking.length === 0) {
-      document.getElementById("rankList").innerHTML = "<p style='text-align:center; color:#94a3b8;'>Nenhuma pontuação ainda</p>";
-      return;
-    }
-    
-    const rankingHTML = ranking.map((player, index) => {
-      const medal = index < 3 ? medals[index] : "";
-      
-      return `
-        <div class="rank-item">
-          <div class="rank-position">${medal} ${index + 1}</div>
-          <div class="rank-avatar">
-            <img src="${player.avatar || defaultAvatar}" alt="${player.name}">
-          </div>
-          <div class="rank-info">
-            <div>${player.name}</div>
-            <div class="rank-score">${player.score} pontos • ${player.time}s</div>
-          </div>
-        </div>
-      `;
-    }).join("");
-    
-    document.getElementById("rankList").innerHTML = rankingHTML;
-  } catch (error) {
-    document.getElementById("rankList").innerHTML = `
-      <p style='text-align:center; color:#ef4444;'>Erro ao carregar ranking</p>
-    `;
-  }
-}
-
-// Funções de navegação
 function goToStart(){
-  ["aboutScreen","rankScreen","resultScreen","gameScreen"].forEach(id=>document.getElementById(id).classList.add("hidden"));
+  ["aboutScreen","resultScreen","gameScreen"].forEach(id=>document.getElementById(id).classList.add("hidden"));
   document.getElementById("startScreen").classList.remove("hidden");
-  hideFirebaseError();
-}
-
-function showRank(){ 
-  ["startScreen","resultScreen","gameScreen"].forEach(id=>document.getElementById(id).classList.add("hidden")); 
-  document.getElementById("rankScreen").classList.remove("hidden"); 
-  updateRankDisplay();
 }
 
 function showAbout(){ 
-  ["startScreen","rankScreen","resultScreen","gameScreen"].forEach(id=>document.getElementById(id).classList.add("hidden")); 
+  ["startScreen","resultScreen","gameScreen"].forEach(id=>document.getElementById(id).classList.add("hidden")); 
   document.getElementById("aboutScreen").classList.remove("hidden"); 
 }
 
@@ -489,22 +277,9 @@ function checkAnswer(answer){
   loadQuestion();
 }
 
-async function endGame(ended=true){
+function endGame(){
   clearInterval(timer);
   player.time = Math.floor((Date.now() - startTime)/1000);
-  
-  if(ended){
-    // Prepara os dados para salvar
-    const scoreData = {
-      name: player.name,
-      avatar: player.avatar,
-      score: player.score,
-      time: player.time
-    };
-    
-    // Salva no Firebase
-    await saveScoreToFirebase(scoreData);
-  }
   
   document.getElementById("gameScreen").classList.add("hidden");
   document.getElementById("resultScreen").classList.remove("hidden");
@@ -529,9 +304,6 @@ function playAgain(){
 function stopGame(){ 
   endGame(false); 
 }
-
-// Inicializar quando a página carregar
-hideFirebaseError();
 </script>
 </body>
 </html>
