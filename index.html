@@ -60,7 +60,7 @@
 
   .scoreboard {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
     gap: 10px;
@@ -117,17 +117,16 @@
   <h1>Quiz: Transcrição do DNA</h1>
 
   <!-- Tela Sobre -->
-  <!-- Tela Sobre -->
-<div id="aboutScreen" class="hidden">
-  <h2>ℹ️ Sobre o Jogo</h2>
-  <div class="about-text">
-    <p>O <strong>Quiz de Transcrição do DNA</strong> foi criado para ajudar no aprendizado de <strong>Biologia Molecular</strong> de forma divertida e interativa.</p>
-    <p>A dinâmica foi inspirada no jogo <strong>Wordwall – Abra a Caixa</strong>: cada pergunta é como uma “caixa” que precisa ser aberta e respondida corretamente para avançar e acumular pontos.</p>
-    <p>Você pode <strong>escolher um avatar</strong>, responder as questões e testar seus conhecimentos sobre o dogma central da biologia.</p>
-    <p><em>Projeto desenvolvido por alunos do <strong>IFSUL – Campus Bagé</strong>: <strong>Jamerson Salinas Pereira</strong> e <strong>Delciomar</strong>.</em></p>
+  <div id="aboutScreen" class="hidden">
+    <h2>ℹ️ Sobre o Jogo</h2>
+    <div class="about-text">
+      <p>O <strong>Quiz de Transcrição do DNA</strong> foi criado para ajudar no aprendizado de <strong>Biologia Molecular</strong> de forma divertida e interativa.</p>
+      <p>A dinâmica foi inspirada no jogo <strong>Wordwall – Abra a Caixa</strong>: cada pergunta é como uma “caixa” que precisa ser aberta corretamente para avançar e acumular pontos.</p>
+      <p>Você pode <strong>escolher um avatar</strong>, responder as questões e testar seus conhecimentos sobre o dogma central da biologia.</p>
+      <p><em>Projeto desenvolvido por alunos do <strong>IFSUL – Campus Bagé</strong>: <strong>Jamerson Salinas Pereira</strong> e <strong>Delciomar</strong>.</em></p>
+    </div>
+    <button onclick="goToStart()">Voltar</button>
   </div>
-  <button onclick="goToStart()">Voltar</button>
-</div>
 
   <!-- Tela inicial -->
   <div id="startScreen">
@@ -151,6 +150,7 @@
       <span id="score">Pontos: 0</span>
       <span id="playerInfo"></span>
       <img id="playerAvatar" src="">
+      <button onclick="toggleFullscreen()">🖥️ Tela Cheia</button>
     </div>
     <div class="question" id="questionText"></div>
     <div class="options" id="options"></div>
@@ -174,60 +174,45 @@ const allQuestions = [
   {q:"O que representa o dogma central da biologia molecular?", 
    options:["RNA → DNA → Proteína","DNA → RNA → Proteína","DNA → Proteína → RNA","Proteína → RNA → DNA"], 
    answer:"DNA → RNA → Proteína"},
-
   {q:"Quais são as três etapas principais do dogma central?", 
    options:["Transcrição, Tradução, Mutação","Replicação, Transcrição, Tradução","Replicação, Tradução, Expressão","Mutação, Transcrição, Replicação"], 
    answer:"Replicação, Transcrição, Tradução"},
-
   {q:"Qual é a exceção ao dogma central encontrada em alguns vírus?", 
    options:["DNA direto para proteína","RNA sendo replicado sem DNA","Transcrição reversa","Proteínas gerando DNA"], 
    answer:"Transcrição reversa"},
-
   {q:"O que é a transcrição reversa e qual enzima a realiza?", 
    options:["Síntese de DNA a partir de RNA pela transcriptase reversa","Síntese de RNA a partir de proteínas pela polimerase","Síntese de proteínas a partir do DNA pela ribossomo","Síntese de DNA a partir de DNA pela DNA polimerase"], 
    answer:"Síntese de DNA a partir de RNA pela transcriptase reversa"},
-
-  // 🔽 Novas perguntas
   {q:"Qual enzima é responsável por realizar a transcrição?", 
    options:["DNA polimerase","RNA polimerase","Helicase","Ligase"], 
    answer:"RNA polimerase"},
-
   {q:"Qual é a molécula produzida no processo de transcrição?", 
    options:["DNA fita dupla","RNA mensageiro (mRNA)","Proteína","Aminoácidos"], 
    answer:"RNA mensageiro (mRNA)"},
-
   {q:"Onde ocorre a transcrição nas células eucarióticas?", 
    options:["Citoplasma","Núcleo","Ribossomo","Mitocôndria"], 
    answer:"Núcleo"},
-
   {q:"Onde ocorre a transcrição em células procarióticas?", 
    options:["Núcleo","Citoplasma","Mitocôndria","Ribossomo"], 
    answer:"Citoplasma"},
-
   {q:"Quais são as três etapas da transcrição?", 
    options:["Iniciação, Elongação e Terminação","Replicação, Mutação e Expressão","Ligação, Duplicação e Tradução","Cópia, Geração e Produção"], 
    answer:"Iniciação, Elongação e Terminação"},
-
   {q:"O que acontece após a transcrição em eucariotos?", 
    options:["Splicing do pré-mRNA","Tradução direta","Duplicação do DNA","Mutação"], 
    answer:"Splicing do pré-mRNA"},
-
   {q:"Quais partes do RNA são removidas no splicing?", 
    options:["Éxons","Introns","Promotores","Códons"], 
    answer:"Introns"},
-
   {q:"Qual tipo de RNA leva a informação genética para a síntese de proteínas?", 
    options:["tRNA","mRNA","rRNA","snRNA"], 
    answer:"mRNA"},
-
   {q:"Qual é o papel do tRNA durante a síntese proteica?", 
    options:["Levar aminoácidos até o ribossomo","Copiar o DNA","Formar o ribossomo","Transportar energia"], 
    answer:"Levar aminoácidos até o ribossomo"},
-
   {q:"Qual sequência geralmente sinaliza o início da transcrição?", 
    options:["TATA box","CAAT box","Códon AUG","Introns"], 
    answer:"TATA box"},
-
   {q:"O que significa 'fita molde' na transcrição?", 
    options:["A fita de RNA que será traduzida","A fita de DNA usada como referência para o RNA","A fita dupla do DNA replicada","A proteína inicial"], 
    answer:"A fita de DNA usada como referência para o RNA"}
@@ -361,6 +346,35 @@ function playAgain(){
 
 function stopGame(){ 
   endGame(false); 
+}
+
+// Fullscreen via F11 ou botão
+document.addEventListener("keydown", (e) => {
+  if (e.key === "F11") {
+    e.preventDefault();
+    toggleFullscreen();
+  }
+});
+
+function toggleFullscreen() {
+  let elem = document.documentElement;
+  if (!document.fullscreenElement) {
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen();
+    } else if (elem.webkitRequestFullscreen) { 
+      elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) { 
+      elem.msRequestFullscreen();
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+    } else if (document.webkitExitFullscreen) {
+      document.webkitExitFullscreen();
+    } else if (document.msExitFullscreen) {
+      document.msExitFullscreen();
+    }
+  }
 }
 </script>
 </body>
